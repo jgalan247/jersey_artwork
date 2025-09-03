@@ -37,7 +37,7 @@
                                             {% endif %}
                                             <div>
                                                 <h6 class="mb-1">
-                                                    <a href="{% url 'artworks:detail' item.artwork.slug %}" 
+                                                    <a href="{% url 'artworks:artwork_detail' pk=item.artwork.id %}"
                                                        class="text-decoration-none">
                                                         {{ item.artwork.title }}
                                                     </a>
@@ -45,9 +45,11 @@
                                                 <p class="text-muted small mb-1">
                                                     by {{ item.artwork.artist.get_full_name }}
                                                 </p>
+                                                {% if item.artwork.artwork_type %}
                                                 <p class="text-muted small mb-0">
                                                     Type: {{ item.artwork.get_artwork_type_display }}
                                                 </p>
+                                                {% endif %}
                                                 {% if not item.available %}
                                                 <p class="text-danger small mb-0">
                                                     <i class="fas fa-exclamation-triangle"></i>
@@ -100,7 +102,7 @@
                     
                     <!-- Cart Actions -->
                     <div class="d-flex justify-content-between mt-3">
-                        <a href="{% url 'artworks:list' %}" class="btn btn-outline-secondary">
+                        <a href="{% url 'artworks:gallery' %}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-2"></i>Continue Shopping
                         </a>
                         <form method="post" action="{% url 'cart:clear' %}" 
@@ -208,7 +210,7 @@
         <i class="fas fa-shopping-cart text-muted" style="font-size: 5rem;"></i>
         <h3 class="mt-4">Your cart is empty</h3>
         <p class="text-muted">Looks like you haven't added any artworks yet.</p>
-        <a href="{% url 'artworks:list' %}" class="btn btn-primary mt-3">
+        <a href="{% url 'artworks:gallery' %}" class="btn btn-primary mt-3">
             <i class="fas fa-palette me-2"></i>Browse Artworks
         </a>
     </div>

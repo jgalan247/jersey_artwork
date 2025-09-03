@@ -54,26 +54,50 @@ def register_view(request):
     
     return render(request, 'accounts/register.html', {'form': form})
 
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.urls import reverse
+
 def login_view(request):
-    """Custom login view following Django conventions."""
+    """User login view"""
     if request.user.is_authenticated:
-        return redirect('artworks:list')
+        return redirect('artworks:gallery')  # or wherever you want logged-in users to go
     
     if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            login(request, form.user)
-            messages.success(request, f'Welcome back, {form.user.first_name}!')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Authenticate using email (username field)
+        user = authenticate(request, username=email, password=password)
+        
+        if user is not None:
+            if not user.email_verified:
+                messages.warning(
+                    request,
+                    'Please verify your email before logging in. '
+                    f'<a href="{reverse("accounts:resend_verification")}">Resend verification email</a>',
+                    extra_tags='safe'  # Allows HTML in message
+                )
+                return render(request, 'accounts/login.html')
+            
+            # Log the user in
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
             
             # Redirect to next or default
             next_url = request.GET.get('next')
             if next_url:
                 return redirect(next_url)
-            return redirect('artworks:list')
-    else:
-        form = LoginForm()
+            
+            # Redirect based on user type
+            if user.user_type == 'artist':
+                return redirect('artworks:my_artworks')
+            return redirect('artworks:gallery')
+        else:
+            messages.error(request, 'Invalid email or password.')
     
-    return render(request, 'accounts/login.html', {'form': form})
+    return render(request, 'accounts/login.html')
 
 def logout_view(request):
     """Logout view following Django conventions."""
@@ -280,44 +304,7 @@ def resend_verification(request):
     return render(request, 'accounts/resend_verification.html', {'form': form})
 
 
-def login_view(request):
-    """User login view"""
-    if request.user.is_authenticated:
-        return redirect('/')
-    
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        
-        # Authenticate using email (username field)
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if not user.email_verified:
-                messages.warning(
-                    request,
-                    'Please verify your email before logging in. '
-                    '<a href="{}">Resend verification email</a>'.format(
-                        reverse('accounts:resend_verification')
-                    )
-                )
-                return redirect('accounts:login')
-            
-            login(request, user)
-            
-            # Get next URL or redirect to appropriate dashboard
-            next_url = request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            
-            if user.user_type == 'artist':
-                return redirect('accounts:artist_dashboard')
-            else:
-                return redirect('/')
-        else:
-            messages.error(request, 'Invalid email or password.')
-    
-    return render(request, 'accounts/login.html')
+
 
 
 @login_required

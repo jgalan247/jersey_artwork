@@ -78,17 +78,18 @@ class AddToCartView(View):
         # Validate quantity
         if quantity < 1:
             messages.error(request, "Invalid quantity.")
-            return redirect('artworks:detail', slug=artwork.slug)
+            return redirect('artworks:artwork_detail', pk=artwork.id)
         
         # Check availability
-        if artwork.artwork_type == 'original' and quantity > 1:
-            messages.error(request, "Only one original artwork is available.")
-            return redirect('artworks:detail', slug=artwork.slug)
-        
-        if artwork.stock_quantity < quantity:
+        # Check if artwork is available at all
+        if not artwork.is_available:
+            messages.error(request, "This artwork is not available.")
+            return redirect('artworks:artwork_detail', pk=artwork.id)
+
+        # Check stock quantity
+        if quantity > artwork.stock_quantity:
             messages.error(request, f"Only {artwork.stock_quantity} available.")
-            return redirect('artworks:detail', slug=artwork.slug)
-        
+            return redirect('artworks:artwork_detail', pk=artwork.id)
         # Get or create cart
         if request.user.is_authenticated:
             cart, created = Cart.objects.get_or_create(
@@ -123,12 +124,12 @@ class AddToCartView(View):
             cart_item.refresh_from_db()
             
             # Check if updated quantity is available
-            if cart_item.quantity > artwork.stock_quantity:
-                cart_item.quantity = artwork.stock_quantity
+            if cart_item.quantity > artwork.is_available:
+                cart_item.quantity = artwork.is_available
                 cart_item.save()
                 messages.warning(
                     request, 
-                    f"Quantity adjusted to {artwork.stock_quantity} (maximum available)."
+                    f"Quantity adjusted to {artwork.is_available} (maximum available)."
                 )
             else:
                 messages.success(request, f"Updated quantity to {cart_item.quantity}.")
@@ -178,8 +179,8 @@ class UpdateCartItemView(View):
             messages.success(request, "Item removed from cart.")
         else:
             # Check availability
-            if quantity > cart_item.artwork.stock_quantity:
-                quantity = cart_item.artwork.stock_quantity
+            if quantity > cart_item.artwork.is_available:
+                quantity = cart_item.artwork.is_available
                 messages.warning(
                     request,
                     f"Quantity adjusted to {quantity} (maximum available)."
