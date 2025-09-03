@@ -28,7 +28,7 @@ def artwork_upload(request):
         if form.is_valid():
             artwork = form.save(commit=False)
             artwork.artist = request.user
-            artwork.status = 'pending'  # Needs admin approval
+            artwork.status = 'draft'  # Needs admin approval
             artwork.save()
             
             # Save main image
@@ -59,7 +59,7 @@ def my_artworks(request):
 def gallery(request):
     artworks = Artwork.objects.filter(
         status='active',
-        stock_quantity__gt=0
+        is_available=True
     ).order_by('-created_at')
     return render(request, 'artworks/gallery.html', {'artworks': artworks})
 
@@ -74,6 +74,6 @@ def home(request):
     # Homepage can show featured artworks
     artworks = Artwork.objects.filter(
         status='active',
-        stock_quantity__gt=0
+        is_available=True
     ).order_by('-created_at')[:6]  # Show 6 latest
     return render(request, 'artworks/home.html', {'artworks': artworks})
