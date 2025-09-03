@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Handle Refund Request - Jersey Artwork{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">Handle Refund Request</h2>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Refund Request Details -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Refund Request #{{ refund_request.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Customer:</strong> {{ refund_request.customer.get_full_name }}<br>
+                            <strong>Email:</strong> {{ refund_request.customer.email }}<br>
+                            <strong>Order:</strong> #{{ order.order_number }}<br>
+                            <strong>Order Date:</strong> {{ order.created_at|date:"d M Y" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Request Date:</strong> {{ refund_request.created_at|date:"d M Y" }}<br>
+                            <strong>Status:</strong> 
+                            <span class="badge bg-{{ refund_request.status|default:'warning' }}">
+                                {{ refund_request.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <h6>Customer's Reason for Refund:</h6>
+                    <div class="alert alert-light">
+                        {{ refund_request.reason }}
+                    </div>
+                    
+                    {% if refund_request.customer_message %}
+                    <h6>Additional Message from Customer:</h6>
+                    <div class="alert alert-light">
+                        {{ refund_request.customer_message }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Affected Items -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Your Artworks in This Order</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in artist_items %}
+                    <div class="d-flex justify-content-between mb-3">
+                        <div>
+                            <strong>{{ item.artwork.title }}</strong><br>
+                            <small class="text-muted">
+                                Type: {{ item.artwork.get_artwork_type_display }}<br>
+                                Quantity: {{ item.quantity }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <strong>£{{ item.total|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <hr>
+                    <div class="text-end">
+                        <strong>Total to be refunded: £{{ artist_items|sum:"total"|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Response Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Your Response</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Message to Customer:</label>
+                            <textarea name="response_message" class="form-control" rows="4" required
+                                      placeholder="Explain your decision to the customer..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important:</strong> If you approve this refund, you'll need to process 
+                            the refund through SumUp directly. The customer will be notified of your decision.
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" name="action" value="approve" 
+                                    class="btn btn-success"
+                                    onclick="return confirm('Are you sure you want to approve this refund? You will need to process it through SumUp.')">
+                                <i class="fas fa-check me-2"></i>Approve Refund
+                            </button>
+                            <button type="submit" name="action" value="reject" 
+                                    class="btn btn-danger"
+                                    onclick="return confirm('Are you sure you want to reject this refund?')">
+                                <i class="fas fa-times me-2"></i>Reject Refund
+                            </button>
+                            <button type="submit" name="action" value="need_info" 
+                                    class="btn btn-warning">
+                                <i class="fas fa-question me-2"></i>Request More Info
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Guidelines Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Refund Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <h6>When to Approve:</h6>
+                    <ul class="small">
+                        <li>Artwork damaged during delivery</li>
+                        <li>Artwork significantly different from description</li>
+                        <li>Wrong artwork delivered</li>
+                        <li>Within your stated return period</li>
+                    </ul>
+                    
+                    <h6>When to Reject:</h6>
+                    <ul class="small">
+                        <li>Customer changed their mind (unless within return period)</li>
+                        <li>Artwork matches description</li>
+                        <li>Custom/commissioned pieces (if stated as non-refundable)</li>
+                        <li>Request made after return period</li>
+                    </ul>
+                    
+                    <h6>Processing Refunds:</h6>
+                    <ol class="small">
+                        <li>Review the refund request carefully</li>
+                        <li>If approved, notify the customer here</li>
+                        <li>Log into your SumUp dashboard</li>
+                        <li>Find the transaction and process refund</li>
+                        <li>Arrange artwork return if necessary</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Note:</strong> Jersey Artwork does not handle payment processing. 
+                        All refunds must be processed through your SumUp account.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

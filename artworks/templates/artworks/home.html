@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Jersey Artwork - Home{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="jumbotron text-center">
+        <h1>🎨 Welcome to Jersey Artwork</h1>
+        <p class="lead">Discover local art from Jersey's talented artists</p>
+        <a href="{% url 'artworks:gallery' %}" class="btn btn-primary btn-lg">Browse Gallery</a>
+    </div>
+    
+    <h2 class="mt-5">Latest Artworks</h2>
+    <div class="row">
+        {% for artwork in artworks %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>{{ artwork.title }}</h5>
+                    <p>£{{ artwork.price }}</p>
+                    <a href="{% url 'artworks:artwork_detail' artwork.pk %}" class="btn btn-sm btn-primary">View</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No artworks yet. Be the first to upload!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

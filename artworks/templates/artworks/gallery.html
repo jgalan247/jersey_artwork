@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Gallery{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Art Gallery</h1>
+    
+    <div class="row">
+        {% for artwork in artworks %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5>{{ artwork.title }}</h5>
+                    <p>by {{ artwork.artist.get_full_name|default:artwork.artist.email }}</p>
+                    <p class="text-primary">£{{ artwork.price }}</p>
+                    <a href="{% url 'artworks:artwork_detail' artwork.pk %}" class="btn btn-primary">View</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No artworks available yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Refund - Jersey Artwork{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="mb-4">Request Refund</h2>
+            
+            <!-- Important Notice -->
+            <div class="alert alert-info mb-4">
+                <h5><i class="fas fa-info-circle"></i> How Refunds Work</h5>
+                <p class="mb-0">
+                    1. Submit your refund request below<br>
+                    2. The artist will review your request within 2-3 business days<br>
+                    3. If approved, the artist will process the refund through SumUp<br>
+                    4. Refunds typically appear in your account within 5-7 business days
+                </p>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Order #{{ order.order_number }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Order Date:</strong> {{ order.created_at|date:"d M Y" }}</p>
+                            <p><strong>Total Amount:</strong> £{{ order.total|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+                            <p><strong>Payment Method:</strong> Card via SumUp</p>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-3">Items in this order:</h6>
+                    <ul class="list-unstyled">
+                        {% for item in order.items.all %}
+                        <li class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    {{ item.artwork_title }} 
+                                    <small class="text-muted">by {{ item.artwork_artist }}</small>
+                                </span>
+                                <span>£{{ item.total|floatformat:2 }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Refund Request Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Refund Request Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Reason for Refund: <span class="text-danger">*</span></label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="text-danger small">{{ form.reason.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-muted">
+                                Please provide detailed information about why you're requesting a refund.
+                                This helps the artist understand and process your request faster.
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Which items are you requesting a refund for?</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" checked disabled>
+                                <label class="form-check-label">
+                                    All items in this order
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                Currently, refunds are processed for the entire order. 
+                                For partial refunds, please mention this in your reason above.
+                            </small>
+                        </div>
+                        
+                        <!-- Artist Information -->
+                        <div class="alert alert-light">
+                            <h6>Artist Information:</h6>
+                            {% for artist, items in order.items.all|groupby:"artwork.artist" %}
+                            <p class="mb-1">
+                                <strong>{{ artist.get_full_name }}</strong><br>
+                                <small>Items: 
+                                    {% for item in items %}
+                                        {{ item.artwork_title }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </small>
+                            </p>
+                            {% endfor %}
+                            <small class="text-muted">
+                                These artist(s) will be notified of your refund request.
+                            </small>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" required id="agreeTerms">
+                            <label class="form-check-label" for="agreeTerms">
+                                I understand that this request will be reviewed by the artist(s) and 
+                                refunds are subject to their approval and return policy.
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'orders:detail' order.order_number %}" 
+                               class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-undo me-2"></i>Submit Refund Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Refund Policy -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6>Refund Policy:</h6>
+                    <ul class="small">
+                        <li>Each artist has their own return and refund policy</li>
+                        <li>Original artworks may have different policies than prints</li>
+                        <li>Custom or commissioned pieces may be non-refundable</li>
+                        <li>Damaged items should be reported within 48 hours of delivery</li>
+                        <li>Return shipping costs may apply depending on the reason for return</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
