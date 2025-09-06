@@ -81,9 +81,9 @@
                                 {% for order in recent_orders %}
                                 <tr>
                                     <td>
-                                        <a href="{% url 'orders:artist_order_detail' order.order_number %}">
-                                            {{ order.order_number|truncatechars:12 }}
-                                        </a>
+                                    <a href="{% url 'orders:artist_order_detail' order_number=order.order_number %}">
+                                        {{ order.order_number|truncatechars:12 }}
+                                    </a>
                                     </td>
                                     <td>{{ order.created_at|date:"d M" }}</td>
                                     <td>{{ order.customer_first_name }}</td>

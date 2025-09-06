@@ -67,7 +67,7 @@
                         <tr class="{% if request.status == 'requested' %}table-warning{% endif %}">
                             <td>{{ request.created_at|date:"d M Y" }}</td>
                             <td>
-                                <a href="{% url 'orders:artist_order_detail' request.order.order_number %}">
+                                <a href="{% url 'orders:artist_order_detail' order_number=request.order.order_number %}">
                                     {{ request.order.order_number|truncatechars:12 }}
                                 </a>
                             </td>
@@ -76,9 +76,9 @@
                                 <small class="text-muted">{{ request.customer.email }}</small>
                             </td>
                             <td>
-                                {% with artist_items=request.order.items.filter:artwork__artist=user %}
-                                £{{ artist_items|sum:"total"|floatformat:2 }}
-                                {% endwith %}
+                            
+                                £{{ request.artist_subtotal|default:0|floatformat:2 }}
+                                
                             </td>
                             <td>
                                 <span class="badge bg-{% if request.status == 'requested' %}warning{% elif request.status == 'approved' %}success{% elif request.status == 'rejected' %}danger{% else %}secondary{% endif %}">
@@ -86,16 +86,10 @@
                                 </span>
                             </td>
                             <td>
-                                {% if request.status in 'requested,artist_reviewing' %}
-                                <a href="{% url 'orders:artist_handle_refund' request.id %}" 
-                                   class="btn btn-sm btn-primary">
-                                    Review
-                                </a>
+                                {% if request.status in ('requested', 'artist_reviewing') %}
+                                <a href="{% url 'orders:artist_handle_refund' refund_id=request.id %}" class="btn btn-sm btn-primary">Review</a>
                                 {% else %}
-                                <a href="{% url 'orders:artist_handle_refund' request.id %}" 
-                                   class="btn btn-sm btn-outline-secondary">
-                                    View
-                                </a>
+                                    <a href="{% url 'orders:artist_handle_refund' refund_id=request.id %}" class="btn btn-sm btn-outline-secondary">View</a>
                                 {% endif %}
                             </td>
                         </tr>

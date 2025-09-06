@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -9,7 +11,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS','localhost,127.0.0.1').split(',') if h.strip()]
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -63,16 +66,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'artworks.wsgi.application'
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'jersey_artwork'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "jersey_artwork"),
+        "USER": os.getenv("POSTGRES_USER", "jersey"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "secret"),
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
-
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -129,6 +131,18 @@ SUMUP_MERCHANT_CODE = 'YOUR_MERCHANT_CODE'
 SUMUP_ACCESS_TOKEN = 'YOUR_ACCESS_TOKEN'
 SUMUP_CLIENT_ID = 'YOUR_CLIENT_ID'
 SUMUP_CLIENT_SECRET = 'YOUR_CLIENT_SECRET'
+# SumUp
+SUMUP_BASE_URL = "https://api.sumup.com"
+SUMUP_CLIENT_ID = os.getenv("SUMUP_CLIENT_ID")
+SUMUP_CLIENT_SECRET = os.getenv("SUMUP_CLIENT_SECRET")
+SUMUP_REDIRECT_URI = os.getenv("SUMUP_REDIRECT_URI")  # e.g. https://your.site/payments/sumup/callback/
+SUMUP_SUCCESS_URL = "https://your.site/payments/success/"
+SUMUP_FAIL_URL = "https://your.site/payments/fail/"
+
+# CityPay (if you choose CityPay for monthly billing)
+CITYPAY_BASE_URL = os.getenv("CITYPAY_BASE_URL", "https://api.citypay.com")  # adjust to their endpoint
+CITYPAY_MERCHANT_ID = os.getenv("CITYPAY_MERCHANT_ID")
+CITYPAY_LICENCE = os.getenv("CITYPAY_LICENCE")  # API key / licence code (name varies)
 
 # Email Configuration
 EMAIL_USE_MAILHOG = os.environ.get('USE_MAILHOG', 'True') == 'True'  # Default to MailHog in development
@@ -153,11 +167,11 @@ elif DEBUG:
 else:
     # Google Workspace Configuration for Production
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get('admin@coderra.je')  # your-email@yourdomain.com
-    EMAIL_HOST_PASSWORD = os.environ.get('Fr1d4yVierne$!!')  # App-specific password
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')     
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     
     # For Google Workspace, you need an app-specific password:
     # 1. Go to https://myaccount.google.com/security

@@ -5,17 +5,13 @@ app_name = 'orders'
 
 urlpatterns = [
     # Customer views
-    path('my-orders/', views.CustomerOrderListView.as_view(), name='customer_list'),
+    path('my-orders/', views.CustomerOrderListView.as_view(), name='my_orders'),  # Changed name to 'my_orders'
     path('order/<str:order_number>/', views.OrderDetailView.as_view(), name='detail'),
     path('track/', views.GuestOrderTrackingView.as_view(), name='track'),
     path('order/<str:order_number>/refund/', views.RequestRefundView.as_view(), name='request_refund'),
     path('order/<str:order_number>/invoice/', views.DownloadInvoiceView.as_view(), name='download_invoice'),
     
-    # Artist views
-    path('artist/orders/', views.ArtistOrderListView.as_view(), name='artist_list'),
-    path('artist/statistics/', views.OrderStatisticsView.as_view(), name='statistics'),
-
-    # Artist views
+    # Artist views (removed duplicates)
     path('artist/dashboard/', views.ArtistDashboardView.as_view(), name='artist_dashboard'),
     path('artist/orders/', views.ArtistOrderListView.as_view(), name='artist_list'),
     path('artist/order/<str:order_number>/', views.ArtistOrderDetailView.as_view(), name='artist_order_detail'),
@@ -23,5 +19,4 @@ urlpatterns = [
     path('artist/refund/<int:refund_id>/', views.ArtistHandleRefundView.as_view(), name='artist_handle_refund'),
     path('artist/sales-report/', views.ArtistSalesReportView.as_view(), name='artist_sales_report'),
     path('artist/statistics/', views.OrderStatisticsView.as_view(), name='statistics'),
-
 ]

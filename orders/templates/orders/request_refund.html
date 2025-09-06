@@ -116,10 +116,9 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'orders:detail' order.order_number %}" 
-                               class="btn btn-secondary">
-                                Cancel
-                            </a>
+                            <a href="{% url 'orders:detail' order_number=order.order_number %}" 
+                            class="btn btn-secondary">Cancel</a>
+
                             <button type="submit" class="btn btn-warning">
                                 <i class="fas fa-undo me-2"></i>Submit Refund Request
                             </button>

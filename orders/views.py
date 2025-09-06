@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 from decimal import Decimal
 import json
 from datetime import datetime, timedelta
-
+from django.template.loader import render_to_string 
 # Import your models
 from .models import Order, OrderItem, OrderStatusHistory, RefundRequest
 from .forms import CheckoutForm, PaymentMethodForm, OrderStatusForm, RefundRequestForm
@@ -25,9 +25,21 @@ from cart.models import Cart
 from accounts.models import User
 from artworks.models import Artwork
 from payments.models import SumUpCheckout
-
+import csv
 # Any other app imports you might need
 from datetime import datetime, timedelta
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from weasyprint import HTML, CSS
+from weasyprint.text.fonts import FontConfiguration
+import tempfile
+import os
+
+@login_required
+def my_orders(request):
+    # You can add logic here to get the user's orders
+    # orders = Order.objects.filter(user=request.user)
+    return render(request, 'orders/my_orders.html')
 
 class CustomerOrderListView(LoginRequiredMixin, ListView):
     """View for customers to see their orders."""
@@ -44,7 +56,7 @@ class CustomerOrderListView(LoginRequiredMixin, ListView):
         ).order_by('-created_at')
         
         # Apply filters
-        form = OrderFilterForm(self.request.GET)
+        form = OrderStatusForm(self.request.GET)
         if form.is_valid():
             # Status filter
             if form.cleaned_data['status']:
@@ -84,7 +96,7 @@ class CustomerOrderListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['filter_form'] = OrderFilterForm(self.request.GET)
+        context['filter_form'] = OrderStatusForm(self.request.GET)
         
         # Calculate order statistics
         user_orders = Order.objects.filter(user=self.request.user)
@@ -276,9 +288,7 @@ class DownloadInvoiceView(LoginRequiredMixin, View):
             user=request.user
         )
         
-        # For now, generate a simple HTML invoice
-        # In production, you'd use something like WeasyPrint or ReportLab for PDF
-        
+        # Prepare context for template
         context = {
             'order': order,
             'order_items': order.items.select_related('artwork'),
@@ -288,12 +298,35 @@ class DownloadInvoiceView(LoginRequiredMixin, View):
             'company_phone': '+44 1534 123456'
         }
         
-        html = render_to_string('orders/invoice.html', context)
+        # Render HTML template
+        html_string = render_to_string('orders/invoice_pdf.html', context)
         
-        response = HttpResponse(html, content_type='text/html')
-        response['Content-Disposition'] = f'attachment; filename="invoice_{order_number}.html"'
-        
-        return response
+        # Create PDF
+        try:
+            # Configure font handling
+            font_config = FontConfiguration()
+            
+            # Generate PDF from HTML
+            html = HTML(string=html_string)
+            pdf = html.write_pdf(font_config=font_config)
+            
+            # Create HTTP response with PDF
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="invoice_{order_number}.pdf"'
+            
+            return response
+            
+        except Exception as e:
+            # Fallback to HTML if PDF generation fails
+            messages.error(
+                request, 
+                f"PDF generation failed: {str(e)}. Showing HTML version instead."
+            )
+            
+            # Return HTML version as fallback
+            response = HttpResponse(html_string, content_type='text/html')
+            response['Content-Disposition'] = f'attachment; filename="invoice_{order_number}.html"'
+            return response
 
 
 class OrderStatisticsView(LoginRequiredMixin, View):

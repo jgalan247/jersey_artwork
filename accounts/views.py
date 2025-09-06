@@ -1,168 +1,28 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.generic import DetailView, UpdateView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db import transaction
-
-
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.sites.shortcuts import get_current_site
-from django.urls import reverse
 from django.views import View
 from django.http import HttpResponse
-from .forms import CustomerRegistrationForm, ArtistRegistrationForm, ResendVerificationForm
-from .models import User
-from .tokens import email_verification_token
+from orders.models import Order 
+from django.db.models import Sum, Q, F, DecimalField, ExpressionWrapper
 
 from .forms import (
+    CustomerRegistrationForm, ArtistRegistrationForm, ResendVerificationForm,
     CustomUserCreationForm, LoginForm, CustomerProfileForm, 
     ArtistProfileForm, UserUpdateForm
 )
 from .models import User, CustomerProfile, ArtistProfile
-
-def register_view(request):
-    """User registration view following Django conventions."""
-    if request.user.is_authenticated:
-        return redirect('artworks:list')
-    
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                user = form.save()
-                login(request, user)
-                messages.success(request, f'Welcome to Jersey Artwork, {user.first_name}!')
-                
-                # Redirect based on user type
-                if user.user_type == 'artist':
-                    messages.info(request, 'Please complete your artist profile.')
-                    return redirect('accounts:profile')
-                else:
-                    return redirect('artworks:list')
-    else:
-        form = CustomUserCreationForm()
-    
-    return render(request, 'accounts/register.html', {'form': form})
-
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.urls import reverse
-
-def login_view(request):
-    """User login view"""
-    if request.user.is_authenticated:
-        return redirect('artworks:gallery')  # or wherever you want logged-in users to go
-    
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        
-        # Authenticate using email (username field)
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if not user.email_verified:
-                messages.warning(
-                    request,
-                    'Please verify your email before logging in. '
-                    f'<a href="{reverse("accounts:resend_verification")}">Resend verification email</a>',
-                    extra_tags='safe'  # Allows HTML in message
-                )
-                return render(request, 'accounts/login.html')
-            
-            # Log the user in
-            login(request, user)
-            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
-            
-            # Redirect to next or default
-            next_url = request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            
-            # Redirect based on user type
-            if user.user_type == 'artist':
-                return redirect('artworks:my_artworks')
-            return redirect('artworks:gallery')
-        else:
-            messages.error(request, 'Invalid email or password.')
-    
-    return render(request, 'accounts/login.html')
-
-def logout_view(request):
-    """Logout view following Django conventions."""
-    logout(request)
-    messages.success(request, 'You have been logged out successfully.')
-    return redirect('artworks:list')
-
-@login_required
-def profile_view(request):
-    """User profile view following Django conventions."""
-    user_form = UserUpdateForm(instance=request.user)
-    profile_form = None
-    
-    # Get or create profile based on user type
-    if request.user.user_type == 'customer':
-        profile, created = CustomerProfile.objects.get_or_create(user=request.user)
-        profile_form = CustomerProfileForm(instance=profile)
-    elif request.user.user_type == 'artist':
-        profile, created = ArtistProfile.objects.get_or_create(
-            user=request.user,
-            defaults={'display_name': request.user.get_full_name()}
-        )
-        profile_form = ArtistProfileForm(instance=profile)
-    
-    if request.method == 'POST':
-        user_form = UserUpdateForm(request.POST, instance=request.user)
-        
-        if request.user.user_type == 'customer':
-            profile_form = CustomerProfileForm(request.POST, instance=profile)
-        elif request.user.user_type == 'artist':
-            profile_form = ArtistProfileForm(request.POST, instance=profile)
-        
-        if user_form.is_valid() and profile_form.is_valid():
-            with transaction.atomic():
-                user_form.save()
-                profile_form.save()
-                messages.success(request, 'Your profile has been updated successfully.')
-                return redirect('accounts:profile')
-    
-    context = {
-        'user_form': user_form,
-        'profile_form': profile_form,
-        'profile': profile,
-    }
-    
-    template_name = f'accounts/{request.user.user_type}_profile.html'
-    return render(request, template_name, context)
-
-class ArtistProfileDetailView(DetailView):
-    """Public artist profile view following Django conventions."""
-    model = ArtistProfile
-    template_name = 'accounts/artist_detail.html'
-    context_object_name = 'artist'
-    
-    def get_queryset(self):
-        return ArtistProfile.objects.filter(is_approved=True).select_related('user')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Add artist's artworks
-        context['artworks'] = self.object.artworks.filter(status='active')[:12]
-        return context
-
-# accounts/views.py
-
+from .tokens import email_verification_token
 
 
 def send_verification_email(request, user):
@@ -244,6 +104,98 @@ def register_artist(request):
     return render(request, 'accounts/register_artist.html', {'form': form})
 
 
+def login_view(request):
+    """User login view"""
+    if request.user.is_authenticated:
+        return redirect('artworks:gallery')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Authenticate using email (username field)
+        user = authenticate(request, username=email, password=password)
+        
+        if user is not None:
+            if not user.email_verified:
+                messages.warning(
+                    request,
+                    'Please verify your email before logging in. '
+                    f'<a href="{reverse("accounts:resend_verification")}">Resend verification email</a>',
+                    extra_tags='safe'  # Allows HTML in message
+                )
+                return render(request, 'accounts/login.html')
+            
+            # Log the user in
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+            
+            # Redirect to next or default
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            
+            # Redirect based on user type
+            if user.user_type == 'artist':
+                return redirect('artworks:my_artworks')
+            return redirect('artworks:gallery')
+        else:
+            messages.error(request, 'Invalid email or password.')
+    
+    return render(request, 'accounts/login.html')
+
+
+@login_required
+def logout_view(request):
+    """User logout view"""
+    logout(request)
+    messages.success(request, 'You have been logged out successfully.')
+    return redirect('/')
+
+
+@login_required
+def profile_view(request):
+    """User profile view with forms for editing"""
+    user_form = UserUpdateForm(instance=request.user)
+    profile_form = None
+    profile = None
+    
+    # Get or create profile based on user type
+    if request.user.user_type == 'customer':
+        profile, created = CustomerProfile.objects.get_or_create(user=request.user)
+        profile_form = CustomerProfileForm(instance=profile)
+    elif request.user.user_type == 'artist':
+        profile, created = ArtistProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.get_full_name()}
+        )
+        profile_form = ArtistProfileForm(instance=profile)
+    
+    if request.method == 'POST':
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        
+        if request.user.user_type == 'customer':
+            profile_form = CustomerProfileForm(request.POST, instance=profile)
+        elif request.user.user_type == 'artist':
+            profile_form = ArtistProfileForm(request.POST, instance=profile)
+        
+        if user_form.is_valid() and profile_form.is_valid():
+            with transaction.atomic():
+                user_form.save()
+                profile_form.save()
+                messages.success(request, 'Your profile has been updated successfully.')
+                return redirect('accounts:profile')
+    
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'profile': profile,
+    }
+    
+    # Use a generic profile template or user-type specific
+    return render(request, 'accounts/profile.html', context)
+
+
 def verify_email(request, uidb64, token):
     """Verify email address using token from email link"""
     try:
@@ -304,43 +256,67 @@ def resend_verification(request):
     return render(request, 'accounts/resend_verification.html', {'form': form})
 
 
-
-
-
-@login_required
-def logout_view(request):
-    """User logout view"""
-    logout(request)
-    messages.success(request, 'You have been logged out successfully.')
-    return redirect('/')
-
-
-@login_required
-def profile_view(request):
-    """User profile view"""
-    return render(request, 'accounts/profile.html')
-
-
 @login_required
 def artist_dashboard(request):
-    """Artist dashboard view"""
     if request.user.user_type != 'artist':
         messages.error(request, 'Access denied. Artists only.')
         return redirect('/')
-    
-    # Check email verification
+
     if not request.user.email_verified:
-        messages.warning(
-            request,
-            'Please verify your email to access all features.'
+        messages.warning(request, 'Please verify your email to access all features.')
+
+    has_subscription = getattr(request.user, 'subscription', None) and request.user.subscription.is_active
+
+    # ✅ Annotate each order with the subtotal that belongs to THIS artist
+    # Assumes Order has related_name 'items' to OrderItem
+    # and OrderItem has a numeric field 'total' (or use price * quantity if not).
+    line_total = ExpressionWrapper(
+        F('items__price') * F('items__quantity'),
+        output_field=DecimalField(max_digits=10, decimal_places=2)
+    )
+
+    recent_orders = (
+        Order.objects
+        .filter(items__artwork__artist=request.user)
+        .distinct()
+        .annotate(
+            artist_subtotal=Sum(
+                line_total,
+                filter=Q(items__artwork__artist=request.user)
+            )
         )
-    
-    # Check subscription status
-    has_subscription = hasattr(request.user, 'subscription') and request.user.subscription.is_active
-    
+        .order_by('-created_at')[:10]
+    )
+    refund_requests = (RefundRequest.objects
+    .select_related('order')
+    .filter(order__items__artwork__artist=request.user)
+    .distinct())
+
+    # Then in Python for each 'req' you can set:
+    for req in refund_requests:
+        req.artist_subtotal = (req.order.items
+            .filter(artwork__artist=request.user)
+            .aggregate(s=Sum(F('price') * F('quantity')))['s'] or 0)
+        
     context = {
-        'has_subscription': has_subscription,
+        'has_subscription': bool(has_subscription),
         'email_verified': request.user.email_verified,
+        'orders': recent_orders,
     }
+    return render(request, 'orders/artist_dashboard.html', context)
+
+
+class ArtistProfileDetailView(DetailView):
+    """Public artist profile view"""
+    model = ArtistProfile
+    template_name = 'accounts/artist_detail.html'
+    context_object_name = 'artist'
     
-    return render(request, 'accounts/artist_dashboard.html', context)
+    def get_queryset(self):
+        return ArtistProfile.objects.filter(is_approved=True).select_related('user')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add artist's artworks
+        context['artworks'] = self.object.artworks.filter(status='active')[:12]
+        return context
