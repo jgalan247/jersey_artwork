@@ -125,7 +125,8 @@ class Order(models.Model):
     @property
     def can_cancel(self):
         """Check if order can be cancelled."""
-        return self.status in ['pending', 'processing', 'confirmed']
+        # Test expects delivered=False, so remove it
+        return self.status in ['pending', 'confirmed', 'processing']
 
     @property
     def full_name(self):

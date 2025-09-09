@@ -22,4 +22,7 @@ urlpatterns = [
     path("sumup/webhook/", views.sumup_webhook, name="sumup_webhook"),
     path("billing/run/", views.run_monthly_billing, name="run_monthly_billing"),
     path('checkout-widget/<str:checkout_id>/', views.CheckoutWidgetView.as_view(), name='checkout_widget'),
+
+    path('subscription/process/<int:subscription_payment_id>/', views.process_subscription, name='process_subscription'),
+    path('subscription/history/', views.subscription_history, name='subscription_history'),
 ]

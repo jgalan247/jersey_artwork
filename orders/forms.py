@@ -23,7 +23,7 @@ JERSEY_PARISHES = [
 
 # Jersey postcode validator
 jersey_postcode_validator = RegexValidator(
-    regex=r'^JE[1-5]\s?\d[A-Z]{2}$',
+    regex=r'^JE[1-5](\s)?\d[A-Z]{2}$',
     message='Please enter a valid Jersey postcode (e.g., JE2 4UH)'
 )
 
@@ -284,8 +284,11 @@ class RefundRequestForm(forms.ModelForm):
         instance = super().save(commit=False)
         if self.order:
             instance.order = self.order
-            instance.requested_by = self.order.customer
-            instance.refund_amount = self.order.total
+            instance.customer = self.order.user
+            # Get artist from first order item
+            first_item = self.order.items.first()
+            if first_item and first_item.artwork:
+                instance.artist = first_item.artwork.artist
         if commit:
             instance.save()
         return instance

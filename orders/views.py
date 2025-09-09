@@ -7,7 +7,7 @@ from django.views.generic import ListView, DetailView, TemplateView, FormView, U
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.db import transaction
@@ -30,8 +30,8 @@ import csv
 from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 from django.http import HttpResponse
-from weasyprint import HTML, CSS
-from weasyprint.text.fonts import FontConfiguration
+# # from weasyprint import HTML, CSS  # Removed - using xhtml2pdf  # Optional for PDF
+# from weasyprint.text.fonts import FontConfiguration
 import tempfile
 import os
 
@@ -40,6 +40,22 @@ def my_orders(request):
     # You can add logic here to get the user's orders
     # orders = Order.objects.filter(user=request.user)
     return render(request, 'orders/my_orders.html')
+
+@login_required
+def artist_orders(request):
+    """Display orders containing the artist's artwork"""
+    if request.user.user_type != 'artist':
+        return HttpResponseForbidden("Artists only")
+    
+    # Get orders containing this artist's artwork
+    orders = Order.objects.filter(
+        items__artwork__artist=request.user
+    ).distinct().order_by('-created_at')
+    
+    context = {
+        'orders': orders
+    }
+    return render(request, 'orders/artist_orders.html', context)
 
 class CustomerOrderListView(LoginRequiredMixin, ListView):
     """View for customers to see their orders."""
@@ -89,7 +105,7 @@ class CustomerOrderListView(LoginRequiredMixin, ListView):
                 search_term = form.cleaned_data['search']
                 queryset = queryset.filter(
                     Q(order_number__icontains=search_term) |
-                    Q(customer_email__icontains=search_term)
+                    Q(email__icontains=search_term)
                 )
         
         return queryset
@@ -158,7 +174,7 @@ class GuestOrderTrackingView(View):
         try:
             order = Order.objects.get(
                 order_number=order_number,
-                customer_email=email
+                email=email
             )
             
             # Render order details
@@ -182,10 +198,10 @@ class ArtistOrderListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def dispatch(self, request, *args, **kwargs):
-        # Check if user is an artist
-        if not request.user.user_type == 'artist':
-            messages.error(request, "This page is only accessible to artists.")
-            return redirect('home')
+        if not request.user.is_authenticated:
+            return redirect('accounts:login')
+        if request.user.user_type != 'artist':
+            return HttpResponseForbidden("Artists only")
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -210,7 +226,7 @@ class ArtistOrderListView(LoginRequiredMixin, ListView):
         )['total'] or 0
         
         # Calculate commission (assuming 10% platform fee)
-        context['total_earnings'] = context['total_revenue'] * 0.9
+        context['total_earnings'] = context['total_revenue'] * Decimal('0.9')
         
         # Get top selling artworks
         context['top_artworks'] = artist_items.values(
@@ -384,7 +400,7 @@ class ArtistDashboardView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.user_type == 'artist':
             messages.error(request, "This page is only for artists.")
-            return redirect('home')
+            return redirect('artworks:home')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -472,7 +488,7 @@ class ArtistOrderDetailView(LoginRequiredMixin, DetailView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.user_type == 'artist':
             messages.error(request, "This page is only for artists.")
-            return redirect('home')
+            return redirect('artworks:home')
         return super().dispatch(request, *args, **kwargs)
     
     def get_object(self):
@@ -523,7 +539,7 @@ class ArtistRefundListView(LoginRequiredMixin, ListView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.user_type == 'artist':
             messages.error(request, "This page is only for artists.")
-            return redirect('home')
+            return redirect('artworks:home')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -548,11 +564,11 @@ class ArtistRefundListView(LoginRequiredMixin, ListView):
 class ArtistHandleRefundView(LoginRequiredMixin, FormView):
     """Artist responds to refund request."""
     template_name = 'orders/artist_handle_refund.html'
-    
+    form_class = RefundRequestForm 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.user_type == 'artist':
             messages.error(request, "This page is only for artists.")
-            return redirect('home')
+            return redirect('artworks:home')
         
         self.refund_request = get_object_or_404(
             RefundRequest,
@@ -622,7 +638,7 @@ class ArtistSalesReportView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.user_type == 'artist':
             messages.error(request, "This page is only for artists.")
-            return redirect('home')
+            return redirect('artworks:home')
         return super().dispatch(request, *args, **kwargs)
     
     def get(self, request):

@@ -89,9 +89,9 @@ class ArtistProfile(Profile):
     @property
     def total_artworks(self):
         """Return total number of artworks by this artist."""
-        return self.artworks.count()
+        return self.user.artworks.count()
     
     @property
     def active_artworks(self):
         """Return number of active artworks."""
-        return self.artworks.filter(status='active').count()
+        return self.user.artworks.filter(status='active').count()

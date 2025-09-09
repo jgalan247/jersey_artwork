@@ -14,6 +14,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.views import View
 from django.http import HttpResponse
 from orders.models import Order 
+from orders.models import RefundRequest
 from django.db.models import Sum, Q, F, DecimalField, ExpressionWrapper
 
 from .forms import (
@@ -23,6 +24,8 @@ from .forms import (
 )
 from .models import User, CustomerProfile, ArtistProfile
 from .tokens import email_verification_token
+
+from django.conf import settings
 
 
 def send_verification_email(request, user):
@@ -256,55 +259,32 @@ def resend_verification(request):
     return render(request, 'accounts/resend_verification.html', {'form': form})
 
 
+
 @login_required
 def artist_dashboard(request):
+    """Artist dashboard with subscription info."""
     if request.user.user_type != 'artist':
         messages.error(request, 'Access denied. Artists only.')
         return redirect('/')
-
-    if not request.user.email_verified:
-        messages.warning(request, 'Please verify your email to access all features.')
-
-    has_subscription = getattr(request.user, 'subscription', None) and request.user.subscription.is_active
-
-    # ✅ Annotate each order with the subtotal that belongs to THIS artist
-    # Assumes Order has related_name 'items' to OrderItem
-    # and OrderItem has a numeric field 'total' (or use price * quantity if not).
-    line_total = ExpressionWrapper(
-        F('items__price') * F('items__quantity'),
-        output_field=DecimalField(max_digits=10, decimal_places=2)
-    )
-
-    recent_orders = (
-        Order.objects
-        .filter(items__artwork__artist=request.user)
-        .distinct()
-        .annotate(
-            artist_subtotal=Sum(
-                line_total,
-                filter=Q(items__artwork__artist=request.user)
-            )
-        )
-        .order_by('-created_at')[:10]
-    )
-    refund_requests = (RefundRequest.objects
-    .select_related('order')
-    .filter(order__items__artwork__artist=request.user)
-    .distinct())
-
-    # Then in Python for each 'req' you can set:
-    for req in refund_requests:
-        req.artist_subtotal = (req.order.items
-            .filter(artwork__artist=request.user)
-            .aggregate(s=Sum(F('price') * F('quantity')))['s'] or 0)
-        
+    
+    # Check subscription status
+    subscription = getattr(request.user, 'subscription', None)
+    
     context = {
-        'has_subscription': bool(has_subscription),
-        'email_verified': request.user.email_verified,
-        'orders': recent_orders,
+        'user': request.user,
+        'subscription': subscription,
+        'subscription_price': settings.SUBSCRIPTION_CONFIG['MONTHLY_PRICE'],
+        'can_upload': subscription and subscription.can_upload_artwork if subscription else False,
+        'artwork_count': request.user.artworks.filter(status='active').count(),
+        'max_artworks': settings.SUBSCRIPTION_CONFIG['FEATURES']['MAX_ARTWORKS'],
+        'recent_orders': Order.objects.filter(
+            items__artwork__artist=request.user
+        ).distinct().order_by('-created_at')[:10]
     }
-    return render(request, 'orders/artist_dashboard.html', context)
-
+    
+    # No commission calculation needed - subscription model
+    
+    return render(request, 'accounts/artist_dashboard.html', context)
 
 class ArtistProfileDetailView(DetailView):
     """Public artist profile view"""

@@ -19,4 +19,5 @@ urlpatterns = [
     path('artist/refund/<int:refund_id>/', views.ArtistHandleRefundView.as_view(), name='artist_handle_refund'),
     path('artist/sales-report/', views.ArtistSalesReportView.as_view(), name='artist_sales_report'),
     path('artist/statistics/', views.OrderStatisticsView.as_view(), name='statistics'),
+    path('artist-orders/', views.artist_orders, name='artist_orders'),
 ]

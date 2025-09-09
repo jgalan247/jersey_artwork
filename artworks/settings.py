@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from decimal import Decimal  # Add this import for subscription pricing
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,7 +13,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS','localhost,127.0.0.1').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',') if h.strip()]
 
 
 # Application definition
@@ -61,9 +63,8 @@ TEMPLATES = [
     },
 ]
 
-
-
 WSGI_APPLICATION = 'artworks.wsgi.application'
+
 # Database
 DATABASES = {
     "default": {
@@ -75,6 +76,7 @@ DATABASES = {
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
+
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -107,7 +109,6 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Media files
 MEDIA_URL = '/media/'
-# MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -118,33 +119,54 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Email configuration (for development)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
 # Session configuration
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_AGE = 86400  # 1 day
 
-# SumUp API Configuration
-SUMUP_API_URL = 'https://api.sumup.com/v0.1'  # Use sandbox URL for testing
-SUMUP_MERCHANT_CODE = 'YOUR_MERCHANT_CODE'
-SUMUP_ACCESS_TOKEN = 'YOUR_ACCESS_TOKEN'
-SUMUP_CLIENT_ID = 'YOUR_CLIENT_ID'
-SUMUP_CLIENT_SECRET = 'YOUR_CLIENT_SECRET'
-# SumUp
-SUMUP_BASE_URL = "https://api.sumup.com"
+# ============================================
+# SUBSCRIPTION CONFIGURATION
+# ============================================
+SUBSCRIPTION_CONFIG = {
+    'MONTHLY_PRICE': Decimal(os.environ.get('ARTIST_SUBSCRIPTION_PRICE', '15.00')),
+    'CURRENCY': os.environ.get('SUBSCRIPTION_CURRENCY', 'GBP'),
+    'TRIAL_DAYS': int(os.environ.get('SUBSCRIPTION_TRIAL_DAYS', '14')),
+    'GRACE_PERIOD_DAYS': int(os.environ.get('SUBSCRIPTION_GRACE_PERIOD', '3')),
+    'FEATURES': {
+        'MAX_ARTWORKS': int(os.environ.get('MAX_ARTWORKS_PER_ARTIST', '100')),
+        'FEATURED_LISTINGS': int(os.environ.get('FEATURED_LISTINGS', '3')),
+        'COMMISSION_RATE': Decimal('0.00'),  # No commission in subscription model
+    }
+}
+
+# ============================================
+# PAYMENT CONFIGURATION
+# ============================================
+
+# Payment Provider Selection
+PAYMENT_PROVIDER = os.environ.get('PAYMENT_PROVIDER', 'sumup')  # 'sumup', 'stripe', or 'citypay'
+
+# SumUp Configuration (for one-time artwork purchases)
+SUMUP_BASE_URL = os.getenv("SUMUP_BASE_URL", "https://api.sumup.com")
+SUMUP_API_URL = os.getenv("SUMUP_API_URL", "https://api.sumup.com/v0.1")
 SUMUP_CLIENT_ID = os.getenv("SUMUP_CLIENT_ID")
 SUMUP_CLIENT_SECRET = os.getenv("SUMUP_CLIENT_SECRET")
+SUMUP_MERCHANT_CODE = os.getenv("SUMUP_MERCHANT_CODE")
+SUMUP_ACCESS_TOKEN = os.getenv("SUMUP_ACCESS_TOKEN")
+SUMUP_API_KEY = os.getenv("SUMUP_API_KEY", "")
+SUMUP_MERCHANT_ID = os.getenv("SUMUP_MERCHANT_ID", "")
 SUMUP_REDIRECT_URI = os.getenv("SUMUP_REDIRECT_URI")  # e.g. https://your.site/payments/sumup/callback/
-SUMUP_SUCCESS_URL = "https://your.site/payments/success/"
-SUMUP_FAIL_URL = "https://your.site/payments/fail/"
+SUMUP_SUCCESS_URL = os.getenv("SUMUP_SUCCESS_URL", "/payments/success/")
+SUMUP_FAIL_URL = os.getenv("SUMUP_FAIL_URL", "/payments/fail/")
 
-# CityPay (if you choose CityPay for monthly billing)
-CITYPAY_BASE_URL = os.getenv("CITYPAY_BASE_URL", "https://api.citypay.com")  # adjust to their endpoint
+# CityPay Configuration (alternative for monthly subscriptions)
+CITYPAY_BASE_URL = os.getenv("CITYPAY_BASE_URL", "https://api.citypay.com")
 CITYPAY_MERCHANT_ID = os.getenv("CITYPAY_MERCHANT_ID")
-CITYPAY_LICENCE = os.getenv("CITYPAY_LICENCE")  # API key / licence code (name varies)
+CITYPAY_LICENCE = os.getenv("CITYPAY_LICENCE")  # API key / licence code
 
-# Email Configuration
+# ============================================
+# EMAIL CONFIGURATION
+# ============================================
+
 EMAIL_USE_MAILHOG = os.environ.get('USE_MAILHOG', 'True') == 'True'  # Default to MailHog in development
 
 if DEBUG and EMAIL_USE_MAILHOG:

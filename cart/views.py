@@ -47,17 +47,30 @@ class CartView(TemplateView):
             'artwork__artist'
         ).order_by('-added_at')
         
-        # Check availability for each item
+        # Check availability for each item - IMPORTANT: Check this happens every time
+        has_unavailable = False
         for item in cart_items:
-            item.available = item.is_available
-            if not item.available:
+            # Check both is_available flag and stock quantity
+            if not item.artwork.is_available or item.artwork.stock_quantity == 0:
+                messages.warning(
+                    self.request, 
+                    f"{item.artwork.title} is no longer available"
+                )
+                item.available = False
+                has_unavailable = True
+            elif item.quantity > item.artwork.stock_quantity:
                 messages.warning(
                     self.request, 
                     f"{item.artwork.title} is no longer available in the requested quantity."
                 )
+                item.available = False
+                has_unavailable = True
+            else:
+                item.available = True
         
         context['cart'] = cart
         context['cart_items'] = cart_items
+        context['has_unavailable'] = has_unavailable  # Add this for template use if needed
         
         # Get saved items if user is authenticated
         if self.request.user.is_authenticated:
@@ -124,12 +137,12 @@ class AddToCartView(View):
             cart_item.refresh_from_db()
             
             # Check if updated quantity is available
-            if cart_item.quantity > artwork.is_available:
-                cart_item.quantity = artwork.is_available
+            if cart_item.quantity > artwork.stock_quantity:
+                cart_item.quantity = artwork.stock_quantity
                 cart_item.save()
                 messages.warning(
                     request, 
-                    f"Quantity adjusted to {artwork.is_available} (maximum available)."
+                    f"Quantity adjusted to {artwork.stock_quantity} (maximum available)."
                 )
             else:
                 messages.success(request, f"Updated quantity to {cart_item.quantity}.")
@@ -151,7 +164,7 @@ class UpdateCartItemView(View):
     """Update cart item quantity."""
     
     def post(self, request, item_id):
-        # Get cart
+    # Get cart
         if request.user.is_authenticated:
             cart = Cart.objects.filter(
                 user=request.user,
@@ -178,17 +191,19 @@ class UpdateCartItemView(View):
             cart_item.delete()
             messages.success(request, "Item removed from cart.")
         else:
-            # Check availability
-            if quantity > cart_item.artwork.is_available:
-                quantity = cart_item.artwork.is_available
+            # Check availability and adjust if needed
+            if quantity > cart_item.artwork.stock_quantity:
+                quantity = cart_item.artwork.stock_quantity
+                cart_item.quantity = quantity
+                cart_item.save()
                 messages.warning(
                     request,
                     f"Quantity adjusted to {quantity} (maximum available)."
                 )
-            
-            cart_item.quantity = quantity
-            cart_item.save()
-            messages.success(request, "Cart updated.")
+            else:
+                cart_item.quantity = quantity
+                cart_item.save()
+                messages.success(request, "Cart updated.")
         
         # Handle AJAX requests
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

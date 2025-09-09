@@ -14,8 +14,7 @@ urlpatterns = [
     path('subscriptions/', include(('subscriptions.urls', 'subscriptions'), namespace='subscriptions')),
 
     path("", include(("artworks.app_urls", "artworks"), namespace="artworks")),
-    # Artworks app mounted at root
-    path('', include(('artworks.app_urls', 'artworks'), namespace='artworks')),
+
 ]
 
 if settings.DEBUG:
