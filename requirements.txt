@@ -1,0 +1,103 @@
+# Core Django
+Django==4.2.16
+django-environ==0.11.2
+
+# Database
+psycopg[binary]==3.2.3
+dj-database-url==2.1.0
+
+# Security
+django-cors-headers==4.3.1
+django-ratelimit==4.1.0
+bleach==6.1.0
+python-magic==0.4.27
+cryptography==42.0.5
+
+# Authentication & Authorization
+PyJWT==2.8.0
+
+# Static Files & Storage
+whitenoise==6.6.0
+boto3==1.34.25
+django-storages==1.14.2
+
+# Image Processing
+Pillow>=10.4.0
+python-magic==0.4.27
+
+# PDF Generation
+xhtml2pdf==0.2.15
+reportlab==4.0.9
+pypdf==4.0.1
+
+# Caching
+redis==5.0.1
+django-redis==5.4.0
+hiredis==2.3.2
+
+# API & Webhooks
+requests==2.31.0
+httpx==0.26.0
+
+# Email
+django-anymail==10.2
+
+# Monitoring & Logging
+sentry-sdk==1.40.0
+python-json-logger==2.0.7
+
+# Task Queue (for background jobs)
+celery==5.3.4
+# django-celery-beat==2.6.0
+django-celery-results==2.5.1
+
+# Environment & Configuration
+python-dotenv==1.0.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2024.1
+
+# Production Server
+gunicorn==21.2.0
+uvicorn[standard]==0.27.0
+
+# Development & Testing (optional, can be in requirements-dev.txt)
+pytest==8.0.0
+pytest-django==4.8.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==22.2.0
+
+# Additional dependencies from original requirements
+arabic-reshaper==3.0.0
+asgiref==3.8.1
+asn1crypto==1.5.1
+Brotli==1.1.0
+certifi==2024.2.2
+cffi==1.16.0
+charset-normalizer==3.3.2
+cssselect2==0.8.0
+fonttools==4.47.2
+html5lib==1.1
+idna==3.6
+lxml==5.1.0
+oscrypto==1.3.0
+pycparser==2.21
+pydyf==0.8.0
+pyHanko==0.21.0
+pyhanko-certvalidator==0.26.3
+pyphen==0.14.0
+python-bidi==0.5.0
+PyYAML==6.0.1
+six==1.16.0
+sqlparse==0.4.4
+svglib==1.5.1
+tinycss2==1.2.1
+tinyhtml5==2.0.0
+typing_extensions==4.9.0
+tzlocal==5.2
+uritools==4.0.2
+urllib3==2.1.0
+webencodings==0.5.1
+zopfli==0.2.3

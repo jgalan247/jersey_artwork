@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+htmlcov/
+
+# Django
+*.sqlite3
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Testing
+test_results.txt
+test_output.txt
+test_summary.txt
+failures.txt
+
+# Documentation
+*.md
+!README.md
+!CLAUDE.md
+
+# Deployment
+Dockerfile
+docker-compose*.yml
+.dockerignore
+app.yaml
+k8s/
+
+# Scripts
+*.sh
+run_tests.py
+clean_cache.sh

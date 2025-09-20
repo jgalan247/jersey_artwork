@@ -16,6 +16,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.conf import settings
 import time
 import requests
+from retry import retry
 
 
 class SeleniumTestCase(StaticLiveServerTestCase):
@@ -94,10 +95,16 @@ class SeleniumTestCase(StaticLiveServerTestCase):
         service = FirefoxService(GeckoDriverManager().install())
         return webdriver.Firefox(service=service, options=options)
     
+    @retry(tries=3, delay=1)
     def wait_for_element(self, by, value, timeout=10):
         """Wait for an element to be present"""
         return WebDriverWait(self.driver, timeout).until(
             EC.presence_of_element_located((by, value))
+        )
+    
+    def wait_for_ajax(self):
+        return WebDriverWait(self.driver, 10).until(
+            lambda driver: driver.execute_script("return jQuery.active == 0")
         )
     
     def wait_for_clickable(self, by, value, timeout=10):

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-
 {% block title %}Login - Jersey Artwork{% endblock %}
 
 {% block content %}
+<!-- TEMPLATE UPDATED - TEST -->
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
@@ -11,24 +11,34 @@
                     <h4 class="mb-0">Login to Jersey Artwork</h4>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" autocomplete="on">
                         {% csrf_token %}
-                        
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" required>
+                            <label for="id_email" class="form-label">Email</label>
+                            <input 
+                                type="email" 
+                                name="email" 
+                                id="id_email"
+                                class="form-control" 
+                                autocomplete="email"
+                                required>
                         </div>
-                        
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" required>
+                            <label for="id_password" class="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                name="password" 
+                                id="id_password"
+                                class="form-control" 
+                                autocomplete="current-password"
+                                required>
+                            <div class="text-end mt-1">
+                                <a href="{% url 'accounts:password_reset' %}" class="small">Forgot Password?</a>
+                            </div>
                         </div>
-                        
                         <button type="submit" class="btn btn-dark w-100">Login</button>
                     </form>
-                    
                     <hr class="my-4">
-                    
                     <div class="text-center">
                         <p>Don't have an account?</p>
                         <div class="d-grid gap-2">
@@ -38,7 +48,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="text-center mt-3">
                 <a href="{% url 'accounts:resend_verification' %}">Resend verification email</a>
             </div>

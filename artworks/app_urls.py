@@ -1,6 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 from . import views
+from .views_security import HealthCheckView, CSRFFailureView
 
 app_name = "artworks"
 
@@ -18,4 +19,8 @@ urlpatterns = [
     path("privacy/", TemplateView.as_view(template_name="artworks/privacy.html"), name="privacy"),
     path("terms/", TemplateView.as_view(template_name="artworks/terms.html"), name="terms"),
     path("refund-policy/", TemplateView.as_view(template_name="artworks/refund.html"), name="refund_policy"),
+
+    # Security endpoints
+    path("health/", HealthCheckView.as_view(), name="health_check"),
+    path("csrf-failure/", CSRFFailureView.as_view(), name="csrf_failure"),
 ]

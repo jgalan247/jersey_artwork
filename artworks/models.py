@@ -1,8 +1,11 @@
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from accounts.models import User  # Import your custom User model
 from decimal import Decimal
+from artworks.validators import FileValidator, generate_secure_filename
+import os
 
 
 class Category(models.Model):
@@ -93,8 +96,12 @@ class Artwork(models.Model):
     materials = models.CharField(max_length=200, blank=True)
     year_created = models.IntegerField(null=True, blank=True)
     
-    # Pricing and Availability
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Pricing and Availability with validation
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     is_available = models.BooleanField(default=True)
     status = models.CharField(
         max_length=20,
@@ -103,11 +110,21 @@ class Artwork(models.Model):
     )
     stock_quantity = models.IntegerField(
         default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(9999)],
         help_text="For prints or reproductions"
     )
     
-    # Media
-    main_image = models.ImageField(upload_to='artworks/')
+    # Media with security validation
+    def artwork_upload_path(instance, filename):
+        """Generate secure upload path for artwork images."""
+        secure_filename = generate_secure_filename(filename)
+        return f'artworks/{instance.artist.id}/{secure_filename}'
+
+    main_image = models.ImageField(
+        upload_to=artwork_upload_path,
+        validators=[FileValidator.validate_image_upload],
+        help_text="Maximum file size: 5MB. Allowed formats: JPEG, PNG, WebP"
+    )
     
     # Jersey-specific
     is_local_artist = models.BooleanField(
@@ -163,7 +180,17 @@ class ArtworkImage(models.Model):
         on_delete=models.CASCADE,
         related_name='additional_images'
     )
-    image = models.ImageField(upload_to='artworks/gallery/')
+
+    def gallery_upload_path(instance, filename):
+        """Generate secure upload path for gallery images."""
+        secure_filename = generate_secure_filename(filename)
+        return f'artworks/gallery/{instance.artwork.artist.id}/{secure_filename}'
+
+    image = models.ImageField(
+        upload_to=gallery_upload_path,
+        validators=[FileValidator.validate_image_upload],
+        help_text="Maximum file size: 5MB. Allowed formats: JPEG, PNG, WebP"
+    )
     caption = models.CharField(max_length=200, blank=True)
     is_primary = models.BooleanField(default=False)
     order = models.IntegerField(default=0)

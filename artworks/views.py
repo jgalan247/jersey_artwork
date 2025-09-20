@@ -9,6 +9,17 @@ from django.views.generic import DetailView
 from .models import Artwork
 from django.views.generic import ListView, DetailView
 from .models import Artwork
+from django.views.decorators.csrf import requires_csrf_token
+
+
+
+@requires_csrf_token
+def csrf_failure(request, reason=""):
+    """Custom CSRF failure page"""
+    return render(request, 'artworks/csrf_failure.html', {
+        'reason': reason,
+        'DEBUG': settings.DEBUG,
+    }, status=403)
 
 @login_required
 def artwork_upload(request):

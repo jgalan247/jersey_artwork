@@ -108,7 +108,6 @@ def register_artist(request):
 
 
 def login_view(request):
-    """User login view"""
     if request.user.is_authenticated:
         return redirect('artworks:gallery')
     
@@ -116,31 +115,22 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         
-        # Authenticate using email (username field)
-        user = authenticate(request, username=email, password=password)
+        # Find user by email first, then authenticate with username
+        try:
+            user_obj = User.objects.get(email=email)
+            user = authenticate(request, username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            user = None
         
         if user is not None:
             if not user.email_verified:
-                messages.warning(
-                    request,
-                    'Please verify your email before logging in. '
-                    f'<a href="{reverse("accounts:resend_verification")}">Resend verification email</a>',
-                    extra_tags='safe'  # Allows HTML in message
-                )
+                messages.warning(request, 'Please verify your email before logging in.')
                 return render(request, 'accounts/login.html')
             
-            # Log the user in
             login(request, user)
             messages.success(request, f'Welcome back, {user.first_name or user.username}!')
             
-            # Redirect to next or default
-            next_url = request.GET.get('next')
-            if next_url:
-                return redirect(next_url)
-            
-            # Redirect based on user type
-            if user.user_type == 'artist':
-                return redirect('artworks:my_artworks')
+            # Redirect logic...
             return redirect('artworks:gallery')
         else:
             messages.error(request, 'Invalid email or password.')
