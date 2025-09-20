@@ -18,8 +18,9 @@ DEMO_MODE = True
 DEBUG = False  # Keep False for professional appearance
 
 ALLOWED_HOSTS = [
-    '.ondigitalocean.app',
-    '.digitaloceanspaces.com',
+    'jerseyhomepage.je',
+    'www.jerseyhomepage.je',
+    '.ondigitalocean.app',  # Keep this for the app URL
     'localhost',
     '127.0.0.1',
 ]
@@ -28,12 +29,21 @@ ALLOWED_HOSTS = [
 if os.environ.get('APP_DOMAIN'):
     ALLOWED_HOSTS.append(os.environ.get('APP_DOMAIN'))
 
-# CSRF Settings for Digital Ocean
+# Update CSRF settings
 CSRF_TRUSTED_ORIGINS = [
+    'https://jerseyhomepage.je',
+    'https://www.jerseyhomepage.je',
     'https://*.ondigitalocean.app',
     'http://localhost:8000',
 ]
 
+# Update CORS settings  
+CORS_ALLOWED_ORIGINS = [
+    'https://jerseyhomepage.je',
+    'https://www.jerseyhomepage.je',
+    'https://*.ondigitalocean.app',
+    'http://127.0.0.1:8000',
+]
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -192,15 +202,7 @@ CITYPAY_BASE_URL = 'https://sandbox.citypay.com'  # Use sandbox
 CITYPAY_MERCHANT_ID = os.environ.get('CITYPAY_MERCHANT_ID', 'demo_merchant')
 CITYPAY_LICENCE = os.environ.get('CITYPAY_LICENCE', 'demo_licence')
 
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    'https://localhost:8000',
-    'http://127.0.0.1:8000',
-]
 
-# Add Digital Ocean app URL when known
-if os.environ.get('APP_URL'):
-    CORS_ALLOWED_ORIGINS.append(os.environ.get('APP_URL'))
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -267,6 +269,10 @@ if DEMO_MODE:
     
     # Skip payment verification
     SKIP_PAYMENT_VERIFICATION = True
+
+
+# Add domain to email settings
+DEFAULT_FROM_EMAIL = 'Jersey Artwork <noreply@jerseyhomepage.je>'
 
 print("=== DEMO SETTINGS LOADED ===")
 print(f"Demo Mode: {DEMO_MODE}")
