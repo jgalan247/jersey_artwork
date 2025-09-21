@@ -22,8 +22,9 @@ ALLOWED_HOSTS = [
     '.digitaloceanspaces.com',
     'localhost',
     '127.0.0.1',
+    'jerseyhomepage.je',           # Add this
+    'www.jerseyhomepage.je',        # Add this
 ]
-
 # Add your actual domain when you get it
 if os.environ.get('APP_DOMAIN'):
     ALLOWED_HOSTS.append(os.environ.get('APP_DOMAIN'))
@@ -32,6 +33,8 @@ if os.environ.get('APP_DOMAIN'):
 CSRF_TRUSTED_ORIGINS = [
     'https://*.ondigitalocean.app',
     'http://localhost:8000',
+    'https://jerseyhomepage.je',       # Add this
+    'https://www.jerseyhomepage.je',   # Add this
 ]
 
 # Application definition
