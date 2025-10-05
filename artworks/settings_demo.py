@@ -143,10 +143,16 @@ if os.environ.get('USE_SPACES') == 'true':
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     AWS_DEFAULT_ACL = 'public-read'
 
-# Email Configuration - DEMO MODE (no real emails)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Logs to console
-# AUTO-VERIFY ALL USERS IN DEMO MODE
-AUTO_VERIFY_EMAIL = True
+# Email Configuration - Production emails
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Jersey Artwork <noreply@coderra.je>')
+EMAIL_SUBJECT_PREFIX = '[Jersey Artwork] '
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Security settings for production
 # Detect if running locally (via runserver or LOCAL_TEST env var)
