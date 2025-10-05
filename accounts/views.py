@@ -16,6 +16,7 @@ from django.http import HttpResponse
 from orders.models import Order 
 from orders.models import RefundRequest
 from django.db.models import Sum, Q, F, DecimalField, ExpressionWrapper
+from django.conf import settings
 
 from .forms import (
     CustomerRegistrationForm, ArtistRegistrationForm, ResendVerificationForm,
@@ -51,12 +52,11 @@ def send_verification_email(request, user):
     send_mail(
         subject,
         message,
-        'noreply@jerseyartwork.je',
+        settings.DEFAULT_FROM_EMAIL,  # Changed from hardcoded address
         [user.email],
         html_message=message,
         fail_silently=False,
     )
-
 
 def register_customer(request):
     """Customer registration view"""
