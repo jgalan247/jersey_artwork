@@ -29,6 +29,38 @@ from .tokens import email_verification_token
 from django.conf import settings
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.views.generic import DetailView, UpdateView
+from django.urls import reverse_lazy, reverse
+from django.db import transaction
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.sites.shortcuts import get_current_site
+from django.views import View
+from django.http import HttpResponse
+from orders.models import Order 
+from orders.models import RefundRequest
+from django.db.models import Sum, Q, F, DecimalField, ExpressionWrapper
+from django.conf import settings
+import logging
+
+from .forms import (
+    CustomerRegistrationForm, ArtistRegistrationForm, ResendVerificationForm,
+    CustomUserCreationForm, LoginForm, CustomerProfileForm, 
+    ArtistProfileForm, UserUpdateForm
+)
+from .models import User, CustomerProfile, ArtistProfile
+from .tokens import email_verification_token
+
+logger = logging.getLogger(__name__)
+
+
 def send_verification_email(request, user):
     """Helper function to send verification email"""
     current_site = get_current_site(request)
@@ -49,14 +81,20 @@ def send_verification_email(request, user):
     })
     
     # Send email
-    send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,  # Changed from hardcoded address
-        [user.email],
-        html_message=message,
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=message,
+            fail_silently=False,
+        )
+        logger.info(f"Verification email sent successfully to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+        raise
+
 
 def register_customer(request):
     """Customer registration view"""
@@ -65,17 +103,34 @@ def register_customer(request):
     
     if request.method == 'POST':
         form = CustomerRegistrationForm(request.POST)
+        logger.info(f"Customer registration form submitted")
+        
         if form.is_valid():
-            user = form.save()
-            
-            # Send verification email
-            send_verification_email(request, user)
-            
-            messages.success(
-                request, 
-                'Registration successful! Please check your email to verify your account.'
-            )
-            return redirect('accounts:login')
+            try:
+                user = form.save()
+                logger.info(f"Customer user created: {user.email}")
+                
+                # Send verification email
+                send_verification_email(request, user)
+                logger.info(f"Verification email sent to: {user.email}")
+                
+                messages.success(
+                    request, 
+                    'Registration successful! Please check your email to verify your account.'
+                )
+                return redirect('accounts:login')
+            except Exception as e:
+                logger.error(f"Customer registration error: {str(e)}")
+                messages.error(request, f"Registration failed. Please try again.")
+        else:
+            # Show form validation errors
+            logger.error(f"Form validation failed. Errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"{error}")
+                    else:
+                        messages.error(request, f"{field}: {error}")
     else:
         form = CustomerRegistrationForm()
     
@@ -89,18 +144,35 @@ def register_artist(request):
     
     if request.method == 'POST':
         form = ArtistRegistrationForm(request.POST)
+        logger.info(f"Artist registration form submitted")
+        
         if form.is_valid():
-            user = form.save()
-            
-            # Send verification email
-            send_verification_email(request, user)
-            
-            messages.success(
-                request, 
-                'Registration successful! Please check your email to verify your account. '
-                'After verification, you can choose a subscription plan to start selling.'
-            )
-            return redirect('accounts:login')
+            try:
+                user = form.save()
+                logger.info(f"Artist user created: {user.email}")
+                
+                # Send verification email
+                send_verification_email(request, user)
+                logger.info(f"Verification email sent to: {user.email}")
+                
+                messages.success(
+                    request, 
+                    'Registration successful! Please check your email to verify your account. '
+                    'After verification, you can choose a subscription plan to start selling.'
+                )
+                return redirect('accounts:login')
+            except Exception as e:
+                logger.error(f"Artist registration error: {str(e)}")
+                messages.error(request, f"Registration failed. Please try again.")
+        else:
+            # Show form validation errors
+            logger.error(f"Form validation failed. Errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"{error}")
+                    else:
+                        messages.error(request, f"{field}: {error}")
     else:
         form = ArtistRegistrationForm()
     
