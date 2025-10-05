@@ -13,9 +13,16 @@ class BasicAuthMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Skip password protection for Django admin
-        if request.path.startswith('/admin'):
-            return self.get_response(request)
+        # Skip password protection for specific paths
+        exempt_paths = [
+            '/admin',
+            '/accounts/verify/',  # Allow email verification
+        ]
+        
+        # Check if current path should be exempt
+        for path in exempt_paths:
+            if request.path.startswith(path):
+                return self.get_response(request)
         
         # Check Authorization header
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
@@ -26,7 +33,7 @@ class BasicAuthMiddleware:
                 username, password = auth_decoded.split(':', 1)
                 
                 # Change these credentials!
-                if username == 'adminArt' and password == 'JerseyArt2025':
+                if username == 'demo' and password == 'JerseyArt2025':
                     return self.get_response(request)
             except:
                 pass
